@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eaf2eb">
+  <title>Recreo Club | Juegos clásicos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #eaf2eb;
+      --white: #fffdf8;
+      --ink: #183c35;
+      --muted: #71847a;
+      --line: #d6e2d8;
+      --green: #236c50;
+      --lime: #c8eb72;
+      --coral: #f07755;
+      --yellow: #f4c95d;
+      --blue: #8fc7d5;
+      --mono: "DM Mono", "Courier New", monospace;
+      --sans: "Manrope", "Trebuchet MS", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: radial-gradient(#c8d9cb 0.7px, transparent 0.7px);
+      background-size: 17px 17px;
+      font-family: var(--sans);
+    }
+    button, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, select:focus-visible { outline: 3px solid var(--coral); outline-offset: 3px; }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 246px minmax(0, 1fr); }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 30px 19px 22px;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 253, 248, .66);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; margin: 0 0 48px 5px; }
+    .brand-mark { display: grid; width: 39px; height: 39px; place-items: center; border-radius: 13px 13px 13px 4px; color: var(--ink); background: var(--lime); font-size: 21px; font-weight: 800; transform: rotate(-5deg); }
+    .brand-name { font-size: 17px; font-weight: 800; letter-spacing: 0; }
+    .brand-name small { display: block; margin-top: 2px; color: var(--muted); font: 10px var(--mono); letter-spacing: 0; text-transform: uppercase; }
+    .nav-label { margin: 0 0 11px 12px; color: var(--muted); font: 10px var(--mono); letter-spacing: 0; text-transform: uppercase; }
+    .game-list { display: grid; gap: 6px; }
+    .game-link { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0 12px; border: 1px solid transparent; border-radius: 7px; background: transparent; text-align: left; cursor: pointer; transition: background .18s ease, transform .18s ease; }
+    .game-link:hover { background: #f2f6ed; transform: translateX(2px); }
+    .game-link[aria-current="page"] { border-color: #dce9d7; background: var(--white); box-shadow: 0 3px 9px #3456410c; font-weight: 800; }
+    .game-icon { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 6px; font-size: 16px; }
+    .icon-mines { background: #f8ddcb; }
+    .icon-chess { background: #d5e8e8; }
+    .icon-golf { background: #dcebba; }
+    .icon-tictac { background: #f5e4a9; }
+    .game-link span:last-child { font-size: 13px; }
+    .sidebar-bottom { margin-top: auto; padding: 16px 7px 0; border-top: 1px solid var(--line); }
+    .online-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #68a969; box-shadow: 0 0 0 3px #68a96920; vertical-align: 1px; }
+    .sidebar-bottom p { margin: 0; color: var(--muted); font: 10px/1.8 var(--mono); text-transform: uppercase; }
+    .main { width: min(1120px, 100%); margin: 0 auto; padding: 34px clamp(18px, 4vw, 58px) 45px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 35px; }
+    .crumb { color: var(--muted); font: 11px var(--mono); letter-spacing: 0; text-transform: uppercase; }
+    .top-note { display: flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 99px; background: #f8fbf5; color: var(--muted); font-size: 11px; }
+    .top-note b { color: var(--ink); font-weight: 800; }
+    .heading-row { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
+    .eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; color: var(--green); font: 10px var(--mono); letter-spacing: 0; text-transform: uppercase; }
+    .eyebrow::before { width: 17px; height: 2px; background: var(--coral); content: ""; }
+    h1 { margin: 0; font-size: clamp(30px, 5vw, 48px); font-weight: 800; line-height: 1.06; letter-spacing: 0; }
+    .heading-copy { max-width: 330px; margin: 0 0 3px; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .play-layout { display: grid; grid-template-columns: minmax(0, 1fr) 218px; align-items: start; gap: 18px; }
+    .game-panel { overflow: hidden; min-width: 0; border: 1px solid #d4e0d4; border-radius: 8px; background: var(--white); box-shadow: 0 12px 35px #2747360b; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 63px; padding: 12px 18px; border-bottom: 1px solid #e7ede5; }
+    .panel-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .panel-title h2 { overflow: hidden; margin: 0; font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .live-tag { flex: 0 0 auto; padding: 5px 7px; border-radius: 4px; background: #eff6df; color: #537343; font: 9px var(--mono); text-transform: uppercase; }
+    .icon-button { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border: 1px solid var(--line); border-radius: 6px; background: transparent; cursor: pointer; }
+    .icon-button:hover { background: #f2f6ed; }
+    .icon-button svg { width: 16px; height: 16px; }
+    .game-area { min-height: 440px; padding: 24px; }
+    .game-view[hidden] { display: none; }
+    .game-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 auto 16px; max-width: 520px; }
+    .metric { display: flex; align-items: baseline; gap: 7px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; }
+    .metric strong { color: var(--ink); font-size: 15px; font-weight: 500; }
+    .toolbar-actions { display: flex; align-items: center; gap: 7px; }
+    .small-button { min-height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: #fff; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .small-button:hover { border-color: #96b5a0; background: #f7faf4; }
+    .small-button.active { border-color: var(--green); background: var(--green); color: white; }
+    .select-small { height: 32px; padding: 0 25px 0 9px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: var(--ink); font-size: 11px; }
+    .mine-board { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); width: min(100%, 414px); margin: 0 auto; gap: 4px; padding: 9px; border: 1px solid #d8e2d6; border-radius: 6px; background: #e7ede2; }
+    .mine-cell { aspect-ratio: 1; display: grid; min-width: 0; place-items: center; padding: 0; border: 1px solid #cbd8c9; border-radius: 4px; background: #f9fbf5; color: var(--ink); font: 700 clamp(12px, 2.4vw, 17px) var(--mono); cursor: pointer; }
+    .mine-cell:hover:not(:disabled) { border-color: #92b496; background: #eef5e8; }
+    .mine-cell.revealed { border-color: #dfe7dc; background: #e9eee5; cursor: default; }
+    .mine-cell.flagged { background: #fae7d9; }
+    .mine-cell[data-number="1"] { color: #2677a4; }
+    .mine-cell[data-number="2"] { color: #4f8b52; }
+    .mine-cell[data-number="3"] { color: #d25443; }
+    .mine-cell[data-number="4"] { color: #6e5bb0; }
+    .mine-cell[data-number="5"] { color: #a44f42; }
+    .game-hint { min-height: 18px; margin: 12px auto 0; color: var(--muted); font-size: 11px; text-align: center; }
+    .chess-wrap { width: min(100%, 440px); margin: 0 auto; }
+    .chess-status { min-height: 19px; margin: 0 0 12px; color: var(--muted); font-size: 12px; text-align: center; }
+    .chess-frame { display: grid; grid-template-columns: 17px minmax(0, 1fr); align-items: stretch; }
+    .chess-ranks { display: grid; grid-template-rows: repeat(8, 1fr); align-items: center; justify-items: center; color: #71847a; font: 9px var(--mono); }
+    .chess-board { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(8, minmax(0, 1fr)); overflow: hidden; aspect-ratio: 1; border: 5px solid #24483b; border-radius: 4px; box-shadow: 0 8px 22px #223d301c; }
+    .chess-files { display: grid; grid-template-columns: repeat(8, 1fr); margin-left: 17px; color: #71847a; font: 9px var(--mono); text-align: center; }
+    .chess-square { position: relative; display: grid; min-width: 0; min-height: 0; place-items: center; padding: 0; border: 0; font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", serif; font-size: clamp(30px, 9vw, 46px); line-height: 1; cursor: pointer; }
+    .chess-square.light { background: #f3edda; }
+    .chess-square.dark { background: #789d88; }
+    .chess-square:hover { filter: brightness(1.07); }
+    .chess-square.selected { background: #ebc75f; }
+    .chess-square.last-move { box-shadow: inset 0 0 0 4px #e7bf4d99; }
+    .chess-square.legal::after { position: absolute; width: 23%; aspect-ratio: 1; border-radius: 50%; background: #24483b59; content: ""; }
+    .chess-square.legal.occupied::after { width: 84%; border: 4px solid #24483b73; background: transparent; }
+    .chess-piece { position: relative; z-index: 0; }
+    .chess-piece.white-piece { color: #fffdf5; -webkit-text-stroke: 1px #183c35; paint-order: stroke fill; }
+    .chess-piece.black-piece { color: #234539; }
+    .golf-wrap { width: min(100%, 620px); margin: 0 auto; }
+    .golf-canvas { display: block; width: 100%; aspect-ratio: 720 / 430; border: 1px solid #cbdcc4; border-radius: 6px; background: #d9e9cc; touch-action: none; cursor: crosshair; }
+    .golf-hint { margin-top: 10px; color: var(--muted); font-size: 11px; text-align: center; }
+    .ttt-wrap { width: min(100%, 370px); margin: 12px auto 0; }
+    .ttt-status { min-height: 21px; margin-bottom: 14px; color: var(--muted); font-size: 12px; text-align: center; }
+    .ttt-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .ttt-cell { display: grid; aspect-ratio: 1; place-items: center; border: 1px solid #dbe5d9; border-radius: 7px; background: #f5f8ef; font-size: clamp(37px, 9vw, 62px); font-weight: 800; cursor: pointer; }
+    .ttt-cell:hover:not(:disabled) { border-color: #96b5a0; background: #eef5e8; }
+    .ttt-cell.x { color: var(--coral); }
+    .ttt-cell.o { color: var(--green); }
+    .side-column { display: grid; gap: 12px; }
+    .side-section { padding: 16px 15px; border: 1px solid #d6e2d8; border-radius: 7px; background: #f6f8f0; }
+    .side-section h3 { margin: 0 0 13px; color: var(--muted); font: 10px var(--mono); text-transform: uppercase; }
+    .stat-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid #e1e8dd; font-size: 11px; }
+    .stat-row:first-of-type { border-top: 0; padding-top: 0; }
+    .stat-row span { color: var(--muted); }
+    .stat-row b { font: 11px var(--mono); }
+    .sticker { position: relative; min-height: 124px; overflow: hidden; padding: 16px; border-radius: 7px; background: var(--lime); }
+    .sticker::after { position: absolute; right: -13px; bottom: -32px; width: 105px; height: 105px; border: 12px solid #183c3517; border-radius: 50%; content: ""; }
+    .sticker .sticker-label { color: #4a6939; font: 9px var(--mono); text-transform: uppercase; }
+    .sticker strong { display: block; max-width: 132px; margin-top: 12px; font-size: 18px; line-height: 1.18; }
+    .sticker em { color: #cf6248; font-style: normal; }
+    .bottom-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 19px; color: var(--muted); font: 9px var(--mono); text-transform: uppercase; }
+    .bottom-note span:last-child { color: var(--green); }
+    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 5; padding: 10px 14px; border-radius: 5px; background: var(--ink); color: white; font-size: 12px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: .2s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 850px) {
+      .shell { grid-template-columns: 205px minmax(0, 1fr); }
+      .sidebar { padding-right: 13px; padding-left: 13px; }
+      .play-layout { grid-template-columns: minmax(0, 1fr); }
+      .side-column { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .side-section { grid-row: span 2; }
+      .sticker { min-height: 120px; }
+    }
+    @media (max-width: 620px) {
+      .shell { display: block; }
+      .sidebar { min-height: 0; padding: 13px 15px 10px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .brand { margin: 0 0 12px 2px; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 11px 11px 11px 3px; font-size: 18px; }
+      .brand-name { font-size: 15px; }
+      .brand-name small { display: none; }
+      .nav-label, .sidebar-bottom { display: none; }
+      .game-list { display: flex; overflow-x: auto; gap: 5px; padding-bottom: 2px; scrollbar-width: thin; }
+      .game-link { width: auto; min-width: max-content; min-height: 39px; gap: 7px; padding: 0 9px; }
+      .game-icon { width: 24px; height: 24px; font-size: 14px; }
+      .game-link span:last-child { font-size: 11px; }
+      .main { padding: 19px 14px 28px; }
+      .topbar { margin-bottom: 23px; }
+      .heading-row { display: block; margin-bottom: 17px; }
+      h1 { font-size: 34px; }
+      .heading-copy { max-width: 440px; margin-top: 8px; font-size: 11px; }
+      .play-layout { gap: 12px; }
+      .game-area { min-height: 360px; padding: 17px 12px; }
+      .panel-head { min-height: 55px; padding: 10px 13px; }
+      .panel-title h2 { font-size: 13px; }
+      .game-toolbar { gap: 7px; margin-bottom: 13px; }
+      .metric { gap: 4px; font-size: 9px; }
+      .metric strong { font-size: 13px; }
+      .small-button { padding: 0 7px; font-size: 10px; }
+      .select-small { padding-left: 6px; font-size: 10px; }
+      .mine-board { gap: 3px; padding: 6px; }
+      .side-column { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .side-section { grid-row: auto; padding: 12px; }
+      .sticker { min-height: 111px; padding: 12px; }
+      .sticker strong { max-width: 112px; font-size: 16px; }
+      .bottom-note { font-size: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Navegación de juegos">
+      <div class="brand"><div class="brand-mark" aria-hidden="true">R</div><div class="brand-name">Recreo Club<small>juegos de siempre</small></div></div>
+      <p class="nav-label">Elige tu juego</p>
+      <nav class="game-list">
+        <button class="game-link" data-game="mines" aria-current="page"><span class="game-icon icon-mines">▦</span><span>Buscaminas</span></button>
+        <button class="game-link" data-game="chess"><span class="game-icon icon-chess">♞</span><span>Ajedrez</span></button>
+        <button class="game-link" data-game="golf"><span class="game-icon icon-golf">◉</span><span>Mini golf</span></button>
+        <button class="game-link" data-game="ttt"><span class="game-icon icon-tictac">×</span><span>Tres en raya</span></button>
+      </nav>
+      <div class="sidebar-bottom"><p><span class="online-dot"></span>Todo listo para jugar</p><p>Club n.º 001 · 2026</p></div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar"><div class="crumb">Inicio <span aria-hidden="true">/</span> Sala de juegos</div><div class="top-note"><span class="online-dot"></span><b>4 juegos</b> disponibles</div></div>
+      <div class="heading-row"><div><div class="eyebrow">Una pausa bien jugada</div><h1>Elige tu partida.</h1></div><p class="heading-copy">Clásicos para pensar, probar suerte y echar una revancha. ¿Cuál va primero?</p></div>
+
+      <div class="play-layout">
+        <section class="game-panel" aria-label="Juego seleccionado">
+          <header class="panel-head"><div class="panel-title"><span id="activeIcon" class="game-icon icon-mines">▦</span><h2 id="activeTitle">Buscaminas</h2><span class="live-tag">en juego</span></div><button class="icon-button" id="restartActive" aria-label="Reiniciar juego" title="Reiniciar juego"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2"/></svg></button></header>
+          <div class="game-area">
+            <section class="game-view" id="view-mines" aria-label="Buscaminas">
+              <div class="game-toolbar"><div class="metric">Minas <strong id="mineCount">010</strong></div><div class="toolbar-actions"><select id="mineDifficulty" class="select-small" aria-label="Dificultad"><option value="easy">Fácil</option><option value="medium">Normal</option><option value="hard">Difícil</option></select><button class="small-button" id="flagMode" aria-pressed="false">⚑ Bandera</button></div><div class="metric">Tiempo <strong id="mineTimer">000</strong></div></div>
+              <div id="mineBoard" class="mine-board" role="grid" aria-label="Tablero de buscaminas"></div>
+              <p id="mineMessage" class="game-hint" aria-live="polite">Encuentra todas las casillas seguras. El primer clic nunca tendrá mina.</p>
+            </section>
+
+            <section class="game-view" id="view-chess" aria-label="Ajedrez" hidden>
+              <div class="game-toolbar"><div class="metric">Juegan <strong>2 personas</strong></div><div class="toolbar-actions"><button class="small-button" id="undoChess" disabled>↶ Deshacer</button><button class="small-button" id="flipChess">⇅ Girar tablero</button></div></div>
+              <div class="chess-wrap"><p id="chessStatus" class="chess-status" aria-live="polite">Turno de las blancas</p><div class="chess-frame"><div id="chessRanks" class="chess-ranks" aria-hidden="true"></div><div id="chessBoard" class="chess-board" role="grid" aria-label="Tablero de ajedrez"></div></div><div id="chessFiles" class="chess-files" aria-hidden="true"></div></div>
+              <p id="chessMessage" class="game-hint" aria-live="polite">Dos jugadores · Selecciona una pieza y luego su destino.</p>
+            </section>
+
+            <section class="game-view" id="view-golf" aria-label="Mini golf" hidden>
+              <div class="game-toolbar"><div class="metric">Golpes <strong id="golfStrokes">00</strong></div><div class="toolbar-actions"><span class="metric">Par <strong>3</strong></span><button class="small-button" id="resetGolf">↻ Reiniciar hoyo</button></div></div>
+              <div class="golf-wrap"><canvas id="golfCanvas" class="golf-canvas" width="720" height="430" aria-label="Campo de minigolf. Arrastra desde la bola hacia atrás para apuntar y soltar para golpear."></canvas><p class="golf-hint">Arrastra desde la bola hacia atrás y suelta para golpear.</p></div>
+            </section>
+
+            <section class="game-view" id="view-ttt" aria-label="Tres en raya" hidden>
+              <div class="game-toolbar"><div class="metric">Turno <strong id="tttTurn">X</strong></div><div class="toolbar-actions"><button class="small-button" id="resetTtt">↻ Nueva partida</button></div></div>
+              <div class="ttt-wrap"><p id="tttStatus" class="ttt-status" aria-live="polite">Juegan dos personas · Empieza X.</p><div id="tttBoard" class="ttt-board" role="grid" aria-label="Tablero de tres en raya"></div></div>
+            </section>
+          </div>
+        </section>
+
+        <aside class="side-column" aria-label="Información de la sala">
+          <section class="side-section"><h3>En esta sala</h3><div class="stat-row"><span>Clásicos</span><b>04</b></div><div class="stat-row"><span>Modo</span><b>Local</b></div><div class="stat-row"><span>Revancha</span><b>∞</b></div></section>
+          <div class="sticker"><span class="sticker-label">Tu marcador</span><strong>La próxima jugada <em>es tuya.</em></strong></div>
+        </aside>
+      </div>
+      <footer class="bottom-note"><span>Recreo Club · Hecho para compartir</span><span>Sin prisa, buena partida</span></footer>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const $ = (selector) => document.querySelector(selector);
+      const gameNames = { mines: "Buscaminas", chess: "Ajedrez", golf: "Mini golf", ttt: "Tres en raya" };
+      const gameIcons = { mines: ["▦", "icon-mines"], chess: ["♞", "icon-chess"], golf: ["◉", "icon-golf"], ttt: ["×", "icon-tictac"] };
+      let activeGame = "mines";
+
+      function selectGame(name) {
+        activeGame = name;
+        document.querySelectorAll(".game-link").forEach((button) => {
+          if (button.dataset.game === name) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+        document.querySelectorAll(".game-view").forEach((view) => { view.hidden = view.id !== `view-${name}`; });
+        const [icon, iconClass] = gameIcons[name];
+        $("#activeIcon").textContent = icon;
+        $("#activeIcon").className = `game-icon ${iconClass}`;
+        $("#activeTitle").textContent = gameNames[name];
+        if (name === "golf") drawGolf();
+      }
+      document.querySelectorAll(".game-link").forEach((button) => button.addEventListener("click", () => selectGame(button.dataset.game)));
+      $("#restartActive").addEventListener("click", () => {
+        ({ mines: newMineGame, chess: resetChess, golf: resetGolf, ttt: resetTtt })[activeGame]();
+      });
+
+      let mineRows = 9, mineCols = 9, mineTotal = 10, mineCells = [], mineStarted = false, mineOver = false, mineFlagging = false, mineSeconds = 0, mineInterval = null;
+      const mineBoard = $("#mineBoard");
+      const difficultySettings = { easy: [9, 9, 10], medium: [12, 12, 22], hard: [14, 14, 36] };
+      function newMineGame() {
+        [mineRows, mineCols, mineTotal] = difficultySettings[$("#mineDifficulty").value];
+        mineStarted = false; mineOver = false; mineFlagging = false; mineSeconds = 0;
+        clearInterval(mineInterval); mineInterval = null;
+        $("#mineTimer").textContent = "000";
+        $("#mineCount").textContent = String(mineTotal).padStart(3, "0");
+        $("#mineMessage").textContent = "Encuentra todas las casillas seguras. El primer clic nunca tendrá mina.";
+        $("#flagMode").classList.remove("active");
+        $("#flagMode").setAttribute("aria-pressed", "false");
+        mineCells = Array.from({ length: mineRows * mineCols }, (_, index) => ({ index, mine: false, revealed: false, flagged: false, adjacent: 0 }));
+        renderMines();
+      }
+      function placeMines(safeIndex) {
+        const safe = new Set([safeIndex]);
+        const row = Math.floor(safeIndex / mineCols), col = safeIndex % mineCols;
+        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+          const r = row + dr, c = col + dc;
+          if (r >= 0 && r < mineRows && c >= 0 && c < mineCols) safe.add(r * mineCols + c);
+        }
+        const choices = mineCells.filter((cell) => !safe.has(cell.index));
+        for (let i = 0; i < mineTotal; i++) {
+          const choice = Math.floor(Math.random() * choices.length);
+          choices[choice].mine = true;
+          choices.splice(choice, 1);
+        }
+        mineCells.forEach((cell) => {
+          const r = Math.floor(cell.index / mineCols), c = cell.index % mineCols;
+          cell.adjacent = neighbors(r, c).filter((index) => mineCells[index].mine).length;
+        });
+        mineStarted = true;
+        mineInterval = setInterval(() => { if (!mineOver) { mineSeconds++; $("#mineTimer").textContent = String(Math.min(999, mineSeconds)).padStart(3, "0"); } }, 1000);
+      }
+      function neighbors(row, col) {
+        const result = [];
+        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+          const r = row + dr, c = col + dc;
+          if ((dr || dc) && r >= 0 && r < mineRows && c >= 0 && c < mineCols) result.push(r * mineCols + c);
+        }
+        return result;
+      }
+      function revealMine(index) {
+        const cell = mineCells[index];
+        if (mineOver || cell.revealed || cell.flagged) return;
+        if (!mineStarted) placeMines(index);
+        if (cell.mine) {
+          mineOver = true; clearInterval(mineInterval);
+          mineCells.filter((item) => item.mine).forEach((item) => { item.revealed = true; });
+          $("#mineMessage").textContent = "¡Uy, una mina! Prueba otra vez.";
+          renderMines(); return;
+        }
+        cell.revealed = true;
+        if (cell.adjacent === 0) neighbors(Math.floor(index / mineCols), index % mineCols).forEach((next) => { if (!mineCells[next].revealed) revealMine(next); });
+        const won = mineCells.every((item) => item.mine || item.revealed);
+        if (won) { mineOver = true; clearInterval(mineInterval); $("#mineMessage").textContent = `¡Tablero despejado en ${mineSeconds} segundos!`; }
+        renderMines();
+      }
+      function renderMines() {
+        mineBoard.style.gridTemplateColumns = `repeat(${mineCols}, minmax(0, 1fr))`;
+        mineBoard.replaceChildren();
+        mineCells.forEach((cell) => {
+          const button = document.createElement("button");
+          button.className = "mine-cell";
+          button.type = "button";
+          button.setAttribute("role", "gridcell");
+          button.setAttribute("aria-label", cell.revealed ? (cell.mine ? "Mina" : cell.adjacent ? `Casilla con ${cell.adjacent} minas vecinas` : "Casilla vacía") : cell.flagged ? "Casilla marcada" : "Casilla oculta");
+          button.disabled = mineOver && !cell.mine;
+          if (cell.revealed) {
+            button.classList.add("revealed");
+            if (cell.mine) button.textContent = "✹";
+            else if (cell.adjacent) { button.textContent = cell.adjacent; button.dataset.number = cell.adjacent; }
+          } else if (cell.flagged) { button.classList.add("flagged"); button.textContent = "⚑"; }
+          button.addEventListener("click", () => {
+            if (mineFlagging && !cell.revealed && !mineOver) { cell.flagged = !cell.flagged; $("#mineCount").textContent = String(Math.max(0, mineTotal - mineCells.filter((item) => item.flagged).length)).padStart(3, "0"); renderMines(); }
+            else revealMine(cell.index);
+          });
+          button.addEventListener("contextmenu", (event) => { event.preventDefault(); if (!cell.revealed && !mineOver) { cell.flagged = !cell.flagged; $("#mineCount").textContent = String(Math.max(0, mineTotal - mineCells.filter((item) => item.flagged).length)).padStart(3, "0"); renderMines(); } });
+          mineBoard.append(button);
+        });
+      }
+      $("#mineDifficulty").addEventListener("change", newMineGame);
+      $("#flagMode").addEventListener("click", () => { mineFlagging = !mineFlagging; $("#flagMode").classList.toggle("active", mineFlagging); $("#flagMode").setAttribute("aria-pressed", String(mineFlagging)); });
+
+      let chessGame = null, chessSelection = null, chessTargets = [], chessFlipped = false, chessLastMove = null;
+      const chessGlyphs = { wk: "♚", wq: "♛", wr: "♜", wb: "♝", wn: "♞", wp: "♟", bk: "♚", bq: "♛", br: "♜", bb: "♝", bn: "♞", bp: "♟" };
+      function resetChess() {
+        if (typeof window.Chess !== "function") {
+          $("#chessStatus").textContent = "No se pudo cargar el motor de ajedrez.";
+          $("#chessMessage").textContent = "Comprueba tu conexión a internet y recarga la página.";
+          return;
+        }
+        chessGame = new window.Chess(); chessSelection = null; chessTargets = []; chessLastMove = null; $("#undoChess").disabled = true; renderChess();
+        $("#chessMessage").textContent = "Dos jugadores · Selecciona una pieza y luego su destino.";
+      }
+      function renderChess() {
+        if (!chessGame) return;
+        const squares = chessFlipped ? [..."abcdefgh"].reverse() : [..."abcdefgh"];
+        const ranks = chessFlipped ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
+        const board = $("#chessBoard"); board.replaceChildren();
+        $("#chessRanks").replaceChildren(...ranks.map((rank) => { const label = document.createElement("span"); label.textContent = rank; return label; }));
+        $("#chessFiles").replaceChildren(...squares.map((file) => { const label = document.createElement("span"); label.textContent = file; return label; }));
+        ranks.forEach((rank, rowIndex) => squares.forEach((file, columnIndex) => {
+          const square = `${file}${rank}`, fileIndex = file.charCodeAt(0) - 97;
+          const piece = chessGame.get(square);
+          const button = document.createElement("button");
+          button.type = "button"; button.className = `chess-square ${(fileIndex + rank) % 2 ? "dark" : "light"}`;
+          button.setAttribute("role", "gridcell"); button.setAttribute("aria-label", `${square}${piece ? `, ${piece.color === "w" ? "blanca" : "negra"} ${piece.type}` : ""}`);
+          if (chessSelection === square) button.classList.add("selected");
+          if (chessTargets.includes(square)) button.classList.add("legal", piece ? "occupied" : "empty");
+          if (chessLastMove && (chessLastMove.from === square || chessLastMove.to === square)) button.classList.add("last-move");
+          if (piece) { const glyph = document.createElement("span"); glyph.className = `chess-piece ${piece.color === "w" ? "white-piece" : "black-piece"}`; glyph.textContent = chessGlyphs[piece.color + piece.type]; button.append(glyph); }
+          button.addEventListener("click", () => clickChessSquare(square)); board.append(button);
+        }));
+        let status = chessGame.turn() === "w" ? "Turno de las blancas" : "Turno de las negras";
+        if (chessGame.in_checkmate()) status = `Jaque mate. Ganan las ${chessGame.turn() === "w" ? "negras" : "blancas"}.`;
+        else if (chessGame.in_stalemate()) status = "Tablas por ahogado.";
+        else if (chessGame.in_draw()) status = "Tablas.";
+        else if (chessGame.in_check()) status += " · Jaque";
+        $("#chessStatus").textContent = status;
+        $("#undoChess").disabled = chessGame.history().length === 0;
+      }
+      function clickChessSquare(square) {
+        if (!chessGame || chessGame.game_over()) return;
+        if (chessSelection && chessTargets.includes(square)) {
+          const move = chessGame.move({ from: chessSelection, to: square, promotion: "q" });
+          if (move) {
+            chessLastMove = { from: move.from, to: move.to };
+            $("#chessMessage").textContent = `Última jugada: ${move.san}`;
+          }
+          chessSelection = null; chessTargets = []; renderChess(); return;
+        }
+        const piece = chessGame.get(square);
+        if (piece && piece.color === chessGame.turn()) {
+          chessSelection = square;
+          chessTargets = chessGame.moves({ square, verbose: true }).map((move) => move.to);
+        } else { chessSelection = null; chessTargets = []; }
+        renderChess();
+      }
+      $("#undoChess").addEventListener("click", () => {
+        if (chessGame && chessGame.undo()) {
+          const history = chessGame.history({ verbose: true });
+          const previousMove = history[history.length - 1];
+          chessLastMove = previousMove ? { from: previousMove.from, to: previousMove.to } : null;
+          chessSelection = null; chessTargets = [];
+          $("#chessMessage").textContent = previousMove ? `Última jugada: ${previousMove.san}` : "Dos jugadores · Selecciona una pieza y luego su destino.";
+          renderChess();
+        }
+      });
+      $("#flipChess").addEventListener("click", () => { chessFlipped = !chessFlipped; renderChess(); });
+
+      const golf = { x: 100, y: 320, vx: 0, vy: 0, strokes: 0, aiming: false, pointer: null, sunk: false };
+      const golfCanvas = $("#golfCanvas"), golfContext = golfCanvas.getContext("2d");
+      const golfHole = { x: 626, y: 113, r: 13 };
+      const golfBlocks = [{ x: 240, y: 126, w: 36, h: 172 }, { x: 416, y: 194, w: 42, h: 172 }];
+      function drawGolf() {
+        if (!golfContext || $("#view-golf").hidden) return;
+        const ctx = golfContext; ctx.clearRect(0, 0, 720, 430);
+        ctx.fillStyle = "#d9e9cc"; ctx.fillRect(0, 0, 720, 430);
+        ctx.fillStyle = "#c8ddb8"; ctx.fillRect(23, 22, 674, 386);
+        ctx.strokeStyle = "#b0c99f"; ctx.lineWidth = 1;
+        for (let y = 37; y < 408; y += 20) { ctx.beginPath(); ctx.moveTo(32, y); ctx.lineTo(688, y); ctx.stroke(); }
+        ctx.fillStyle = "#9fc5c7"; ctx.beginPath(); ctx.ellipse(353, 102, 42, 28, -.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#5b8060"; ctx.font = "11px 'DM Mono', monospace"; ctx.fillText("AGUA", 331, 105);
+        golfBlocks.forEach((block) => { ctx.fillStyle = "#f3c95e"; ctx.fillRect(block.x, block.y, block.w, block.h); ctx.fillStyle = "#deb247"; ctx.fillRect(block.x + block.w - 5, block.y, 5, block.h); });
+        ctx.fillStyle = "#f07755"; ctx.beginPath(); ctx.arc(golfHole.x, golfHole.y, golfHole.r + 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#24483b"; ctx.beginPath(); ctx.arc(golfHole.x, golfHole.y, golfHole.r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#fffdf8"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(golfHole.x, golfHole.y); ctx.lineTo(golfHole.x, golfHole.y - 40); ctx.stroke();
+        ctx.fillStyle = "#f07755"; ctx.beginPath(); ctx.moveTo(golfHole.x, golfHole.y - 40); ctx.lineTo(golfHole.x + 24, golfHole.y - 33); ctx.lineTo(golfHole.x, golfHole.y - 26); ctx.fill();
+        ctx.fillStyle = "#71847a"; ctx.font = "11px 'DM Mono', monospace"; ctx.fillText("SALIDA", 72, 366); ctx.fillText("HOYO 01", 603, 157);
+        if (golf.aiming && golf.pointer) {
+          const dx = golf.x - golf.pointer.x, dy = golf.y - golf.pointer.y;
+          const length = Math.hypot(dx, dy), scale = Math.min(1, length / 105);
+          ctx.strokeStyle = "#f07755"; ctx.lineWidth = 3; ctx.setLineDash([7, 5]); ctx.beginPath(); ctx.moveTo(golf.x, golf.y); ctx.lineTo(golf.x + dx * scale, golf.y + dy * scale); ctx.stroke(); ctx.setLineDash([]);
+          ctx.fillStyle = "#183c35"; ctx.font = "11px 'DM Mono', monospace"; ctx.fillText(`${Math.round(scale * 100)}%`, golf.x + dx * scale + 7, golf.y + dy * scale - 7);
+        }
+        ctx.fillStyle = "#183c35"; ctx.beginPath(); ctx.arc(golf.x + 2, golf.y + 3, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#fffdf8"; ctx.beginPath(); ctx.arc(golf.x, golf.y, 9, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#c8d1c8"; ctx.beginPath(); ctx.arc(golf.x - 3, golf.y - 3, 2, 0, Math.PI * 2); ctx.fill();
+        if (golf.sunk) { ctx.fillStyle = "#183c35"; ctx.font = "800 27px 'Manrope', sans-serif"; ctx.textAlign = "center"; ctx.fillText("¡HOYO EN UNO!", 360, 219); ctx.font = "12px 'DM Mono', monospace"; ctx.fillText("REINICIA PARA JUGAR OTRA VEZ", 360, 244); ctx.textAlign = "start"; }
+      }
+      function golfPointer(event) {
+        const rect = golfCanvas.getBoundingClientRect();
+        return { x: (event.clientX - rect.left) * golfCanvas.width / rect.width, y: (event.clientY - rect.top) * golfCanvas.height / rect.height };
+      }
+      golfCanvas.addEventListener("pointerdown", (event) => {
+        if (golf.sunk || Math.hypot(golf.vx, golf.vy) > .1 || Math.hypot(golfPointer(event).x - golf.x, golfPointer(event).y - golf.y) > 25) return;
+        golf.aiming = true; golfCanvas.setPointerCapture(event.pointerId); golf.pointer = golfPointer(event); drawGolf();
+      });
+      golfCanvas.addEventListener("pointermove", (event) => { if (golf.aiming) { golf.pointer = golfPointer(event); drawGolf(); } });
+      golfCanvas.addEventListener("pointerup", (event) => {
+        if (!golf.aiming) return;
+        const pointer = golfPointer(event), dx = golf.x - pointer.x, dy = golf.y - pointer.y;
+        const distance = Math.hypot(dx, dy), power = Math.min(12, distance * .075);
+        golf.aiming = false; golf.pointer = null;
+        if (power > .35) { golf.vx = dx / (distance || 1) * power; golf.vy = dy / (distance || 1) * power; golf.strokes++; $("#golfStrokes").textContent = String(golf.strokes).padStart(2, "0"); }
+        drawGolf();
+      });
+      function resetGolf() { golf.x = 100; golf.y = 320; golf.vx = 0; golf.vy = 0; golf.strokes = 0; golf.aiming = false; golf.pointer = null; golf.sunk = false; $("#golfStrokes").textContent = "00"; drawGolf(); }
+      $("#resetGolf").addEventListener("click", resetGolf);
+      function golfFrame() {
+        if (!golf.aiming && !golf.sunk) {
+          golf.x += golf.vx; golf.y += golf.vy;
+          golf.vx *= .984; golf.vy *= .984;
+          if (Math.abs(golf.vx) < .045) golf.vx = 0;
+          if (Math.abs(golf.vy) < .045) golf.vy = 0;
+          if (golf.x < 38 || golf.x > 682) { golf.vx *= -.72; golf.x = Math.max(38, Math.min(682, golf.x)); }
+          if (golf.y < 38 || golf.y > 392) { golf.vy *= -.72; golf.y = Math.max(38, Math.min(392, golf.y)); }
+          golfBlocks.forEach((block) => {
+            if (golf.x + 9 > block.x && golf.x - 9 < block.x + block.w && golf.y + 9 > block.y && golf.y - 9 < block.y + block.h) {
+              const fromSide = Math.min(Math.abs(golf.x - block.x), Math.abs(golf.x - (block.x + block.w)));
+              const fromEnd = Math.min(Math.abs(golf.y - block.y), Math.abs(golf.y - (block.y + block.h)));
+              if (fromSide < fromEnd) golf.vx *= -.72; else golf.vy *= -.72;
+            }
+          });
+          if (Math.hypot(golf.x - 353, golf.y - 102) < 31) { golf.x = 100; golf.y = 320; golf.vx = 0; golf.vy = 0; $("#golfStrokes").textContent = String(++golf.strokes).padStart(2, "0"); }
+          if (Math.hypot(golf.x - golfHole.x, golf.y - golfHole.y) < 15 && Math.hypot(golf.vx, golf.vy) < 3) { golf.x = golfHole.x; golf.y = golfHole.y; golf.vx = 0; golf.vy = 0; golf.sunk = true; }
+          if (activeGame === "golf") drawGolf();
+        }
+        requestAnimationFrame(golfFrame);
+      }
+      requestAnimationFrame(golfFrame);
+
+      let tttState = Array(9).fill(""), tttCurrent = "X", tttFinished = false;
+      const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      function resetTtt() { tttState = Array(9).fill(""); tttCurrent = "X"; tttFinished = false; $("#tttTurn").textContent = tttCurrent; $("#tttStatus").textContent = "Juegan dos personas · Empieza X."; renderTtt(); }
+      function renderTtt() {
+        const board = $("#tttBoard"); board.replaceChildren();
+        tttState.forEach((value, index) => {
+          const button = document.createElement("button"); button.type = "button"; button.className = `ttt-cell${value ? ` ${value.toLowerCase()}` : ""}`; button.textContent = value; button.disabled = Boolean(value) || tttFinished; button.setAttribute("role", "gridcell"); button.setAttribute("aria-label", value ? `Casilla ${index + 1}: ${value}` : `Casilla ${index + 1}, vacía`); button.addEventListener("click", () => moveTtt(index)); board.append(button);
+        });
+      }
+      function moveTtt(index) {
+        if (tttFinished || tttState[index]) return;
+        tttState[index] = tttCurrent;
+        const winner = wins.find((line) => line.every((cell) => tttState[cell] === tttCurrent));
+        if (winner) { tttFinished = true; $("#tttStatus").textContent = `¡${tttCurrent} gana la partida!`; }
+        else if (tttState.every(Boolean)) { tttFinished = true; $("#tttStatus").textContent = "Empate. ¡Una revancha!"; }
+        else { tttCurrent = tttCurrent === "X" ? "O" : "X"; $("#tttTurn").textContent = tttCurrent; $("#tttStatus").textContent = `Turno de ${tttCurrent}.`; }
+        renderTtt();
+      }
+      $("#resetTtt").addEventListener("click", resetTtt);
+      newMineGame(); resetChess(); resetTtt(); drawGolf();
+    })();
+  </script>
+</body>
+</html>
